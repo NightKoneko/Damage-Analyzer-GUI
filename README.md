@@ -6,7 +6,7 @@ This is still a work in progress
 
 ## How to use:
 
-1. `git clone https://github.com/NightKoneko/HSR-Damage-Analyzer-GUI.git`
+1. `git clone https://github.com/NightKoneko/Damage-Analyzer-GUI.git`
 
 2. `pip install -r requirements.txt`
 
@@ -14,7 +14,7 @@ This is still a work in progress
 
    * In the case of https://github.com/lanylow/genshin-utility, rename `veritas.dll` to `library.dll` and replace the previous `library.dll` with it. **Make sure to run `loader.exe` as administrator.**
 
-3. Run `hsrdamageanalyzer_gui.py`
+3. Run `damageanalyzer_gui.py`
 
 4. Click the 'Connect' button
 
