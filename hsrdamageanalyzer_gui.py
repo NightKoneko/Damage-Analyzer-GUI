@@ -16,7 +16,7 @@ import pandas as pd
 class ClientGUI:
     def __init__(self, master):
         self.master = master
-        master.title("HSR Damage Analyzer")
+        master.title("HSR Damage Analyzer GUI")
         master.geometry("1200x800")
 
         self.client_socket = None
@@ -168,10 +168,10 @@ class ClientGUI:
             self.handle_id2()
 
     def handle_id0(self, data):
-        os.makedirs("csv_files", exist_ok=True)
+        os.makedirs("damage_logs", exist_ok=True)
         
         filename = f"HSR_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        full_path = os.path.join("csv_files", filename)
+        full_path = os.path.join("damage_logs", filename)
         
         self.current_file = full_path
         self.csv_file = open(full_path, mode='w', newline='', encoding='utf-8')
