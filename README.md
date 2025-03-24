@@ -8,13 +8,15 @@ This is still a work in progress
 
 1. `git clone https://github.com/NightKoneko/HSR-Damage-Analyzer-GUI.git`
 
+2. `pip install -r requirements.txt`
+
 2. Inject https://github.com/hessiser/veritas (You can download a prebuilt veritas dll from releases or alternatively build it yourself) into the game. This can be done with a tool like https://github.com/lanylow/genshin-utility or Cheat Engine
 
    * In the case of https://github.com/lanylow/genshin-utility, rename `veritas.dll` to `library.dll` and replace the previous `library.dll` with it. **Make sure to run `loader.exe` as administrator.**
 
 3. Run `hsrdamageanalyzer_gui.py`
 
-4. Click 'Connect'
+4. Click the 'Connect' button
 
 5. Enter battle in-game
 
