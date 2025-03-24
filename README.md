@@ -1,4 +1,4 @@
-# HSR Damage Analyzer GUI
+# Damage Analyzer GUI
 
 Made to be used with https://github.com/hessiser/veritas
 
