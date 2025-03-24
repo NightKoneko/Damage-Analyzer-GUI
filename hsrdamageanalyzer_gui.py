@@ -12,6 +12,11 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import pandas as pd
+import win32gui
+import win32.lib.win32con as win32con
+
+hideterminal = win32gui.GetForegroundWindow()
+win32gui.ShowWindow(hideterminal, win32con.SW_HIDE)
 
 class ClientGUI:
     def __init__(self, master):
@@ -136,19 +141,43 @@ class ClientGUI:
 
     def receive_loop(self):
         try:
+            buffer = bytearray()
+            base64_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
+            
             while self.running:
                 response = self.client_socket.recv(1024)
                 if not response:
                     break
                 
-                decoded_bytes = base64.b64decode(response)
-                decoded_str = decoded_bytes.decode('utf-8')
-                json_data = json.loads(decoded_str)
-                data = json.loads(json_data)
-                
-                self.process_message(data)
-                self.update_plots()
-                
+                buffer.extend(response)
+
+                while buffer:
+                    try:
+                        message = buffer.decode('ascii')
+                        
+                        padding_index = -1
+                        for i in range(len(message)):
+                            if (len(message[0:i]) % 4 == 0 and 
+                                all(c in base64_chars for c in message[0:i])):
+                                try:
+                                    decoded = base64.b64decode(message[0:i])
+                                    data = json.loads(decoded)
+                                    self.process_message(data)
+                                    self.update_plots()
+                                    buffer = buffer[i:]
+                                    padding_index = i
+                                    break
+                                except (json.JSONDecodeError, UnicodeDecodeError):
+                                    continue
+                        
+                        if padding_index == -1:
+                            break
+                            
+                    except Exception as e:
+                        self.log_message(f"Buffer processing error: {str(e)}")
+                        buffer.clear()
+                        break
+
         except (ConnectionResetError, ConnectionAbortedError):
             self.log_message("Connection closed by server")
         except Exception as e:
@@ -158,14 +187,25 @@ class ClientGUI:
 
     def process_message(self, data):
         message_id = data["id"]
-        self.log_message(f"Processing message ID: {message_id}")
+
+        # debug
+        # self.log_message(f"Processing message ID: {message_id}")
 
         if message_id == 0:
+            # battle lineup initialization
             self.handle_id0(data)
         elif message_id == 1:
+            # damage chunk
             self.handle_id1(data)
         elif message_id == 2:
-            self.handle_id2()
+            # Turn end
+            self.handle_id2(data)
+        elif message_id == 3:
+            # avatar kill
+            self.handle_id3(data)
+        elif message_id == 0xFFFFFFFF:
+            # battle end (????)
+            self.handle_battle_end()
 
     def handle_id0(self, data):
         os.makedirs("damage_logs", exist_ok=True)
@@ -182,19 +222,17 @@ class ClientGUI:
         self.log_message(f"Created CSV: {filename}")
         self.log_message(f"Headers: {self.avatar_names}")
 
+    # TODO: make this way quicker, right now it's pretty slow to send all the damage logs
     def handle_id1(self, data):
         if self.csv_writer and self.avatar_names:
             row = [0] * len(self.avatar_names)
-            for entry in data["damages"]:
-                # debug
-                # self.log_message(f"Raw Damage Entry: {json.dumps(entry)}")
-
-                damage = entry["damage"]
-                attacker = entry["attacker"]["avatar_name"]
-                if damage > 0:
-                    self.log_message(f"{attacker} dealt {damage} damage")
-                if attacker in self.avatar_names:
-                    row[self.avatar_names.index(attacker)] += damage
+            attacker = data["attacker"]["avatar_name"]
+            damage_chunk = data["damage_chunk"]
+            
+            if damage_chunk > 0:
+                self.log_message(f"{attacker} dealt {damage_chunk} damage")
+            if attacker in self.avatar_names:
+                row[self.avatar_names.index(attacker)] += damage_chunk
 
             self.csv_writer.writerow(row)
             self.csv_file.flush()
@@ -207,11 +245,22 @@ class ClientGUI:
 
             self.update_plots()
 
-    def handle_id2(self):
+    # TODO: make this not suck
+    def handle_id2(self, data):
+        for damage_data in data["damages"]:
+            if damage_data["damage"] > 0:
+                self.log_message(f"Turn summary - {damage_data['attacker']['avatar_name']}: {damage_data['damage']} damage")
+    
+
+    # I don't think this is ever actually used
+    def handle_id3(self, data):
+        self.log_message(f"{data['attacker']['avatar_name']} killed")
+    
+    def handle_battle_end(self):
         if self.csv_file:
             self.csv_file.close()
             self.csv_file = None
-            self.log_message("CSV file closed")
+            self.log_message("Battle ended - CSV file closed")
         self.stop_client()
 
     def update_plots(self):
